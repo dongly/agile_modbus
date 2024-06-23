@@ -38,13 +38,17 @@ extern "C" {
 typedef struct agile_modbus_slave_util_map {
     int start_addr;                                       /**<Start address */
     int end_addr;                                         /**< end address */
-    int (*get)(void *buf, int bufsz);                     /**< Get register data interface */
+    int (*get)(int index, int len, void *buf, int bufsz); /**< Get register data interface */
     int (*set)(int index, int len, void *buf, int bufsz); /**< Set register data interface */
 } agile_modbus_slave_util_map_t;
 
 /**
  * @brief   slave function structure
  */
+typedef     int (*agile_modbus_slave_util_station_check_t)(
+    agile_modbus_t *ctx, struct agile_modbus_slave_info *slave_info);
+typedef int (*agile_modbus_slave_util_addr_check_t)(
+    const struct agile_modbus_slave_info *slave_info, const agile_modbus_slave_util_map_t *map); 
 typedef struct agile_modbus_slave_util {
     const agile_modbus_slave_util_map_t *tab_bits;                                            /**< Coil register definition array */
     int nb_bits;                                                                              /**<The number of coil register definition arrays */
@@ -54,7 +58,8 @@ typedef struct agile_modbus_slave_util {
     int nb_registers;                                                                         /**< Number of holding register definition arrays */
     const agile_modbus_slave_util_map_t *tab_input_registers;                                 /**< Input register definition array */
     int nb_input_registers;                                                                   /**<Input register definition array number */
-    int (*addr_check)(agile_modbus_t *ctx, struct agile_modbus_slave_info *slave_info);       /**< Address checking interface */
+    agile_modbus_slave_util_station_check_t station_check;                                    /**< Station Address checking interface */
+    agile_modbus_slave_util_addr_check_t addr_check;                                          /**<Registers/bits Address checking interface */
     int (*special_function)(agile_modbus_t *ctx, struct agile_modbus_slave_info *slave_info); /**<Special function code processing interface */
     int (*done)(agile_modbus_t *ctx, struct agile_modbus_slave_info *slave_info, int ret);    /**< Processing end interface */
 } agile_modbus_slave_util_t;

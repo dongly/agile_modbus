@@ -13,6 +13,7 @@
 
 #include "agile_modbus.h"
 #include "agile_modbus_slave_util.h"
+#include <stdint.h>
 #include <string.h>
 
 /** @addtogroup UTIL
@@ -43,6 +44,23 @@ static const agile_modbus_slave_util_map_t *get_map_by_addr(const agile_modbus_s
     }
 
     return NULL;
+}
+
+/**
+ * @brief   Check the register address
+ * @param   slave_info    slave information body
+ * @param   map           mapping object
+ * @return  =0: normal;
+ *          =-AGILE_MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS: Abnormal    
+ */
+static int slave_address_check(const struct agile_modbus_slave_info *slave_info,
+                               const agile_modbus_slave_util_map_t *map)
+{
+    if (map == NULL || slave_info->address + slave_info->nb - 1 > map->end_addr || slave_info->address < map->start_addr)
+    {
+        return -AGILE_MODBUS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
+    }
+    return 0;
 }
 
 /**
@@ -367,6 +385,22 @@ static int write_read_registers(agile_modbus_t *ctx, struct agile_modbus_slave_i
 }
 
 /**
+ * @brief   Check the slave station
+ * @param   ctx           modbus handle
+ * @param   slave_info    slave information body
+ * @return  =0: normal;
+ *          =(-AGILE_MODBUS_EXCEPTION_UNKNOW(-255): Abnormal
+ */
+static int slave_station_check(agile_modbus_t *ctx, struct agile_modbus_slave_info *slave_info)
+{
+    int slave = slave_info->sft->slave;
+    if ((slave != ctx->slave) && (slave != AGILE_MODBUS_BROADCAST_ADDRESS) && (slave != 0xFF))
+        return -AGILE_MODBUS_EXCEPTION_UNKNOW;
+
+    return 0;
+}
+
+/**
  * @}
  */
 
@@ -389,14 +423,19 @@ int agile_modbus_slave_util_callback(agile_modbus_t *ctx, struct agile_modbus_sl
     int function = slave_info->sft->function;
     int ret = 0;
     const agile_modbus_slave_util_t *slave_util = (const agile_modbus_slave_util_t *)data;
+    agile_modbus_slave_util_station_check_t station_check = slave_util->station_check;
 
     if (slave_util == NULL)
         return 0;
 
-    if (slave_util->addr_check) {
-        ret = slave_util->addr_check(ctx, slave_info);
-        if (ret != 0)
-            return ret;
+    if (station_check == NULL)
+    {
+        station_check = slave_station_check;
+    }
+    ret = station_check(ctx, slave_info);
+    if (ret != 0)
+    {
+        return ret;
     }
 
     switch (function) {

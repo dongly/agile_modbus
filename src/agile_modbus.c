@@ -1315,6 +1315,7 @@ int agile_modbus_slave_handle(agile_modbus_t *ctx, int msg_length, uint8_t slave
         }
 
         slave_info.buf = (uint8_t *)&reg_data;
+        slave_info.nb = 1;
         rsp_length = req_length;
         if (ctx->send_bufsz < (int)(rsp_length + ctx->backend->checksum_length)) {
             exception_code = AGILE_MODBUS_EXCEPTION_NEGATIVE_ACKNOWLEDGE;
